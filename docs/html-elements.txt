@@ -1,0 +1,77 @@
+DROPDOWN TEMPLATE
+
+<div id="dropdown" class="dropdown">
+    <a onclick="dropdownToggle()" class="button-text-icon button-additional">
+        <span>Список</span>
+        <svg id="dropdown-arrow" class="arrow-down" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 13L16 21L8 13" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    <div id="dropdown-elems" class="dropdown-elems">
+        <p class="dropdown-option">Список</p>
+        <p class="dropdown-option">Список</p>
+        <p class="dropdown-option">Список</p>
+        <p class="dropdown-option">Список</p>
+    </div>
+</div>
+<script>
+    function dropdownToggle() {
+        let dropdownElems = document.getElementById('dropdown-elems')
+        let arrow = document.getElementById('dropdown-arrow')
+        dropdownElems.classList.toggle('dropdown-elems-open')
+        arrow.classList.toggle('arrow-down')
+        arrow.classList.toggle('arrow-up')
+    }
+</script>
+
+
+
+BUTTON WITH TEXT AND ICON TEMPLATE 
+
+<a href="" class="button-text-icon">
+    <span></span>
+    <svg>
+        <path></path>
+    </svg>
+</a>
+
+
+
+CARD TEMPLATE
+
+<article class="card">
+    <img class="card-img" src="./src/img/placeholder.png" alt="">
+    <div class="card-info">
+        <h2>Фамилия Имя Отчество</h2>
+        <h3>Должность</h3>
+    </div>
+</article>
+
+
+
+ALARM TEMPLATE
+
+SUCCESS
+
+<article class="alarm">
+    <h3>Письмо успешно отправленно!</h3>
+    <svg class="alarm-success" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M29.3334 16V6H16H2.66669V16V26H16" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20.6667 24L24 26.6667L29.3334 20" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2.66669 6L16 16L29.3334 6" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h4>Проверьте свою почту</h4>
+</article>
+
+ERROR
+
+<article class="alarm">
+    <h3>Письмо не отправленно!</h3>
+    <svg class="alarm-error" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M29.3334 16V6H16H2.66669V16V26H16" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M26.6666 20.6667L21.3333 26" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M21.3333 20.6667L26.6666 26" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2.66669 6L16 16L29.3334 6" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h4>Проверьте написание почты или попробуйте снова позже</h4>
+</article>
