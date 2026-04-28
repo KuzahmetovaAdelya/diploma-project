@@ -9,7 +9,6 @@
     --accent-pressed-color: #EB6005;
     --accent-disabled-color: #B2A79F;
     --bg-color: #F6F7F9;
-    --bg-color: #F6F7F9;
     --text-color: #0B1B33;
     --success-color: #3C9C22;
     --error-color: #B82828;
@@ -143,7 +142,6 @@ input::placeholder {
     padding: 32px;
     border-radius: 128px;
     border: none;
-    background-color: var(--accent-color);
     cursor: pointer;
     transition: background-color .3s ease-in-out;
 
@@ -151,14 +149,13 @@ input::placeholder {
         width: 64px;
         height: 64px;
     }
-
-    svg path {
-        stroke: var(--bg-color);
-    }
 }
 
 .button-additional {
     background-color: var(--additional-color);
+    svg path {
+        stroke: var(--bg-color);
+    }
 }
 
 .button-additional:hover, .button-additional:focus {
@@ -172,6 +169,9 @@ input::placeholder {
 
 .button-accent {
     background-color: var(--accent-color);
+    svg path {
+        stroke: var(--bg-color);
+    }
 }
 
 
@@ -181,6 +181,17 @@ input::placeholder {
 
 .button-accent:disabled {
     background-color: var(--accent-disabled-color);
+}
+
+.button-bg {
+    background-color: var(--bg-color);
+    svg path {
+        stroke: var(--additional-color);
+    }
+}
+
+.button-bg:hover, .button-bg:focus {
+    background-color: var(--additional-light-color);
 }
 
 /* DROPDOWN */

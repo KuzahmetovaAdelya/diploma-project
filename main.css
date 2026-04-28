@@ -1,7 +1,27 @@
 /* ASIDE */
 
 aside {
-    width: 1112px;
+    /* width: 1112px; */
+    background-color: var(--bg-color);
+    height: 100vh;
+    z-index: 100;
+    position: relative;
+    max-width: 1112px;
+    transition: max-width 0.5s ease-in-out;
+}
+
+.aside-close {
+    max-width: 0px;
+
+    .container-aside .header-main,
+    .container-aside .header-main .header-block {
+        max-width: 0px;
+    }
+
+    .container-aside .header-main .header-block .search-input,
+    .container-aside .header-main .header-block .dropdown {
+        display: none;
+    }
 }
 
 .container-aside {
@@ -14,12 +34,16 @@ aside {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: max-width 0.5s ease-in-out;
+    max-width: 968px;
 }
 
 .header-block {
     display: flex;
     align-items: center;
     gap: 16px;
+    transition: max-width 0.4s ease-in-out;
+    max-width: 968px;
 }
 
 .search-input {
@@ -48,7 +72,54 @@ aside {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    overflow-y: scroll;
+    overflow-y: auto;
+    overflow-x: hidden;
     max-height: calc(100vh - 128px - 72px - 48px);
+
+    /* scrollbar-color: var(--accent-color) var(--bg-color); */
 }
 
+.cards-block::-webkit-scrollbar {
+    width: 24px;
+}
+
+.cards-block::-webkit-scrollbar-track {
+    background: var(--bg-color);  /* цвет трека (дорожки) */
+    border-radius: 10px;
+}
+
+.cards-block::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);  /* цвет ползунка */
+    border-radius: 61px;
+    transition: background-color .3s ease-in-out;
+
+}
+
+.cards-block::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-pressed-color);  /* цвет ползунка при наведении */
+}
+
+/* CAMERA */
+
+.camera {
+    background-color: #ffd6d6;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.camera .button-icon {
+    height: 128px;
+}
+
+.camera-aside-button {
+    position: absolute;
+    top: 94px;
+    left: 104px;
+}
+
+.camera-screen-button {
+    position: absolute;
+    bottom: 64px;
+    left: calc((100vw - 128px) / 2);
+}
