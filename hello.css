@@ -1,0 +1,33 @@
+/* HEADER */
+
+.header-hello {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+
+.surpk-logo {
+    height: 128px;
+}
+
+/* HELLO BLOCK */
+
+.hello {
+    background-color: var(--additional-color);
+    padding: 56px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    border-radius: 10px;
+    width: min-content;
+
+    margin: 88px auto 0;
+}
+
+.hello-title {
+    color: var(--bg-color);
+    width: 560px;
+    text-align: center;
+}

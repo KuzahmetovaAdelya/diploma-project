@@ -1,0 +1,54 @@
+/* ASIDE */
+
+aside {
+    width: 1112px;
+}
+
+.container-aside {
+    padding: 72px 40px 0 104px;
+}
+
+/* HEADER */
+
+.header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.search-input {
+    width: 455px;
+}
+
+.arrow-right {
+    width: 64px;
+    height: 64px;
+    cursor: pointer;
+
+    path {
+        stroke: var(--additional-color);
+        transition: stroke .3s ease-in-out;
+    }
+}
+
+.arrow-right:hover path, .arrow-right:focus path {
+    stroke: var(--additional-focus-color);
+}
+
+/* CARDS */
+
+.cards-block {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: scroll;
+    max-height: calc(100vh - 128px - 72px - 48px);
+}
+
