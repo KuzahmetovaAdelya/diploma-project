@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="camera">
-        <aside class="" id="aside">
+        <aside class="aside-main" id="aside">
             <div class="container-aside">
                 <header class="header-main">
                     <div class="header-block">
@@ -37,7 +37,7 @@
                         </div>
                     </div>
 
-                    <svg onclick="closeAside()" class="arrow-right" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg onclick="openCloseAside()" class="arrow-right" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13 9L21 17L13 25" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </header>
@@ -86,7 +86,7 @@
             </div>
         </aside>
     
-        <button onclick="openAside()" class="button-icon button-bg camera-aside-button">
+        <button onclick="openCloseAside()" class="button-icon button-bg camera-aside-button">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 25L11 17L19 9" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -111,12 +111,7 @@
             arrow.classList.toggle('arrow-up')
         }
 
-        function openAside() {
-            let aside = document.getElementById('aside')
-            aside.classList.toggle('aside-close')
-        }
-
-        function closeAside() {
+        function openCloseAside() {
             let aside = document.getElementById('aside')
             aside.classList.toggle('aside-close')
         }

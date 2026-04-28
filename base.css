@@ -83,7 +83,7 @@ a {
 input {
     border: var(--additional-color) solid 5px;
     border-radius: 128px;
-    padding: 16px 32px;
+    padding: 11px 27px;
     font-size: 40px;
     transition: all .3s ease-in-out;
     cursor: pointer;
