@@ -15,33 +15,36 @@ app.use(express.json());
 app.use(cors());
 
 app.post('/createUser', authMiddleware, (req, res) => {
-    let userRole = req.user.role;
-    if (userRole === 'admin') {
-        if (req.body.password === req.body.passwordRepeat) {
-            const hashedPassword = encodePassword(req.body.password);
-            db.run(
-                "INSERT INTO Users(fullName, login, password, role) VALUES (?, ?, ?, ?)",
-                [
-                    req.body.fullname,
-                    req.body.login,
-                    hashedPassword,
-                    'user'
-                ],
-                (err) => {
-                    if (err) {
-                        res.status(409).send(err.message)
-                        return console.log(err)
-                    }
-
-                    res.status(201).send("Created")
-                }
-            )
-        } else {
-            res.status(400).send("Passwords aren't same")
+  let userRole = req.user.role;
+  if (userRole === 'admin') {
+    if (req.body.password === req.body.passwordRepeat) {
+      const hashedPassword = encodePassword(req.body.password);
+      let role = "user"
+      if (req.body.role) {
+        role = req.body.role;
+      }
+      db.run(
+        "INSERT INTO Users(fullName, login, password, role) VALUES (?, ?, ?, ?)",
+        [
+          req.body.fullname,
+          req.body.login,
+          hashedPassword,
+          role
+        ],
+        (err) => {
+          if (err) {
+            res.status(409).send(err.message)
+            return console.log(err)
+          }
+          res.status(201).send("Created")
         }
+      )
     } else {
-        res.status(403).send("Forbidden")
+      res.status(400).send("Passwords aren't same")
     }
+  } else {
+      res.status(403).send("Forbidden")
+  }
 })
 
 app.post("/auth", (req, res) => {
@@ -103,10 +106,8 @@ app.get("/getUsers", authMiddleware, (req, res) => {
 
 app.get("/getMe", authMiddleware, (req, res) => {
   const userData = {
-    surname: req.user.surname,
-    name: req.user.name,
-    patronymic: req.user.patronymic,
-    unit: req.user.unit,
+    fullname: req.user.fullName,
+    login: req.user.login
   };
   res.status(200).send(userData);
 });
@@ -132,15 +133,19 @@ app.put("/updateUser", authMiddleware, (req, res) => {
   if (req.user.role === "admin") {
     if (req.body.password === req.body.passwordRepeat) {
       const hashedPassword = encodePassword(req.body.password);
+
+      let role = "user"
+      if (req.body.role) {
+        role = req.body.role;
+      }
+
       db.run(
-        "UPDATE users SET login = ?, surname = ?, name = ?, patronymic = ?, unit = ?, password = ? WHERE id = ?",
+        "UPDATE users SET login = ?, fullName = ?, password = ?, role = ? WHERE id = ?",
         [
           req.body.login,
-          req.body.surname,
-          req.body.name,
-          req.body.patronymic,
-          req.body.unit,
+          req.body.fullname,
           hashedPassword,
+          role,
           req.body.id,
         ],
         (err, row) => {
@@ -159,8 +164,109 @@ app.put("/updateUser", authMiddleware, (req, res) => {
   }
 });
 
+app.post('/createTeacher', authMiddleware, (req, res) => {
+  if (req.user.role === 'admin') {
+    db.run("INSERT INTO Teachers(fullName, unit, pmo, post, cabinet, modelId) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        req.body.fullname,
+        req.body.unit,
+        req.body.pmo,
+        req.body.post,
+        req.body.cabinet,
+        req.body.modelId
+      ],
+      (err) => {
+        if (err) {
+          res.status(500).send(err.message)
+          return console.log(err)
+        }
+        res.status(201).send("Created")
+      }
+    )
+  } else {
+    res.status(403).send("Forbidden");
+  }
+})
+
+app.get("/getAllTeachers", (req, res) => {
+  db.all("SELECT * FROM Teachers", (err, row) => {
+    if (err) {
+      res.status(500).send(err);
+      console.log(err.message);
+    } else {
+      try {
+        res.status(200).send(row);
+      } catch (error) {
+        res.status(500).send(error);
+      }
+    }
+  });
+});
+
+app.get("/getTeachersByUnit", (req, res) => {
+  db.all("SELECT * FROM Teachers WHERE unit = ?",
+    [
+      req.body.unit
+    ],
+    (err, row) => {
+      if (err) {
+        res.status(500).send(err);
+        console.log(err.message);
+      } else {
+        try {
+          res.status(200).send(row);
+        } catch (error) {
+          res.status(500).send(error);
+        }
+      }
+  });
+});
+
+app.put("/updateTeacher", authMiddleware, (req, res) => {
+  if (req.user.role === "admin") {
+    db.run(
+      "UPDATE Teachers SET fullName = ?, unit = ?, pmo = ?, post = ?, cabinet = ?, modelId = ? WHERE id = ?",
+      [
+        req.body.fullname,
+        req.body.unit,
+        req.body.pmo,
+        req.body.post,
+        req.body.cabinet,
+        req.body.modelId,
+        req.body.id,
+      ],
+      (err, row) => {
+        if (err) {
+          res.status(500).send(err);
+          return console.log(err.message);
+        }
+        res.status(200).send("Updated");
+      }
+    );
+  } else {
+    res.status(403).send("Forbidden");
+  }
+})
+
+app.delete('/deleteTeacher', authMiddleware, (req, res) => {
+  if (req.user.role === "admin") {
+    db.run("DELETE FROM Teachers WHERE id = ?", [req.body.id], (err, row) => {
+      if (err) {
+        res.status(500).send(err);
+        return console.log(err.message);
+      }
+      let result = {
+        error: "none",
+      };
+      res.status(200).send(result);
+    });
+  } else {
+    res.status(403).send("Forbidden");
+  }
+})
+
 app.get("/test", (req, res) => {
-  res.status(200).send("result");
+  res.status(200).send("test success");
 });
 
 app.listen(port, () => {

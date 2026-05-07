@@ -1,13 +1,9 @@
-// const bcrypt = require('bcrypt');
 import bcrypt from "bcrypt";
 
-// Number of salt rounds for bcrypt
 const saltRounds = 10;
 
-// Function to encode/hash a password
 async function encodePassword(plainTextPassword) {
   try {
-    // Generate a salt and hash the password
     const salt = await bcrypt.genSalt(saltRounds);
     const hashedPassword = await bcrypt.hash(plainTextPassword, salt);
     return hashedPassword;

@@ -75,3 +75,8 @@ ERROR
     </svg>
     <h4>Проверьте написание почты или попробуйте снова позже</h4>
 </article>
+
+
+DATA
+login: adminloginnowisit
+password: adminpasswordsecurity
