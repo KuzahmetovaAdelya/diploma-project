@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import db from "./db.js";
+import pool from "./dbpost.js";
 
 export default function authMiddleware(req, res, next) {
   try {
@@ -10,16 +10,21 @@ export default function authMiddleware(req, res, next) {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    db.all("SELECT * FROM Users WHERE id = ?", [decoded.userId], (err, row) => {
-      if (err) {
-        res.status(500).send(err);
-        return console.log(err.message);
-      } else {
-        req.user = row[0];
+    pool.query(
+      'SELECT * FROM "Users" WHERE id = $1',
+      [decoded.userId],
+      (err, result) => {
+        if (err) {
+          console.error(err.message);
+          return res.status(500).send('Ошибка сервера');
+        }
+        if (result.rows.length === 0) {
+          return res.status(404).send('Пользователь не найден');
+        }
+        req.user = result.rows[0];
         next();
       }
-    });
+    );
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(401).send({ message: "Invalid token" });
@@ -30,3 +35,4 @@ export default function authMiddleware(req, res, next) {
     return res.status(500).send({ message: "Internal server error" });
   }
 }
+
