@@ -12,6 +12,7 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
+import transporter from "./mailer.js";
 
 const app = express();
 const port = 3001;
@@ -317,6 +318,66 @@ app.get('/photos/:photoName', (req, res) => {
       res.status(500).send('Error');
     }
   });
+});
+
+app.post('/sendPhotos', async (req, res) => {
+  try {
+    const { email, photos } = req.body;
+    // photos = array of ids
+
+    if (!email || !photos || !Array.isArray(photos) || photos.length === 0) {
+      return res.status(400).json({ error: 'Не указаны email и/или фотографии (массив id)' });
+    }
+
+    const attachments = [];
+
+    for (const photoId of photos) {
+      const result = await pool.query(
+        'SELECT "photoName" FROM "Photos" WHERE "id" = $1',
+        [photoId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: `Фото с id ${photoId} не найдено в базе` });
+      }
+
+      const photoName = result.rows[0].photoName;
+      const filePath = path.resolve('photos', photoName);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: `Файл ${photoName} отсутствует на сервере` });
+      }
+
+      attachments.push({
+        filename: photoName,
+        path: filePath         
+      });
+    }
+
+    const mailText = 'Поздравляем с удачным кадром! Приложение «Отражение» дарит вам возможность запомнить встречу с преподавателем в необычном формате.';
+
+    const info = await transporter.sendMail({
+      from: `"Ваше приложение" «Отражение»`,
+      to: email,
+      subject: 'Ваши фотографии «Отражения»',
+      text: mailText,
+      html: `<p>${mailText}</p>`,
+      attachments
+    });
+
+    console.log('Письмо отправлено:', info.messageId);
+
+    await pool.query(
+      `INSERT INTO "UsersSendings" ("email", "photoIds", "sendDate", "emailName")
+       VALUES ($1, $2::integer[], NOW(), $3)`,
+      [email, photos, info.messageId]
+    );
+
+    res.json({ message: 'Письмо успешно отправлено', messageId: info.messageId });
+  } catch (err) {
+    console.error('Ошибка отправки письма:', err);
+    res.status(500).json({ error: 'Ошибка отправки письма' });
+  }
 });
 
 app.get("/test", (req, res) => {
