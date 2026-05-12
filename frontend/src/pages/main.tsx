@@ -1,21 +1,59 @@
-import { useState } from 'react';
-import Head from 'next/head';
+import { useState, useEffect } from 'react';
+
+interface Teacher {
+  id: number;
+  fullName: string;
+  unit: string;
+  pmo?: string;
+  post?: string;
+  cabinet?: string;
+  modelId?: number;
+}
 
 export default function MainPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAsideOpen, setIsAsideOpen] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState('СП - 4');
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const units = ['СП - 1', 'СП - 2', 'СП - 3', 'СП - 4', 'СП - 5'];
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
+  // Загрузка преподавателей при изменении подразделения
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Если серверный маршрут принимает unit из query (правильный REST):
+        const response = await fetch(
+          `http://localhost:3001/getTeachersByUnit?unit=${encodeURIComponent(selectedUnit)}`
+        );
 
-  const toggleAside = () => {
-    setIsAsideOpen(!isAsideOpen);
-  };
+        // Если сервер ожидает тело в GET (неправильно) – замени на POST:
+        // const response = await fetch('http://localhost:3001/getTeachersByUnit', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ unit: selectedUnit }),
+        // });
 
+        if (!response.ok) throw new Error('Ошибка загрузки преподавателей');
+        const data: Teacher[] = await response.json();
+        setTeachers(data);
+      } catch (err: any) {
+        setError(err.message);
+        setTeachers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeachers();
+  }, [selectedUnit]);
+
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+  const toggleAside = () => setIsAsideOpen(!isAsideOpen);
   const selectUnit = (unit: string) => {
     setSelectedUnit(unit);
     setIsDropdownOpen(false);
@@ -90,45 +128,25 @@ export default function MainPage() {
             </header>
 
             <div className="cards-block">
-              <article className="card">
-                <img className="card-img" src="/img/placeholder.png" alt="" />
-                <div className="card-info">
-                  <h2>Фамилия Имя Отчество</h2>
-                  <h3>Должность</h3>
-                </div>
-              </article>
-
-              <article className="card">
-                <img className="card-img" src="/img/placeholder.png" alt="" />
-                <div className="card-info">
-                  <h2>Фамилия Имя Отчество</h2>
-                  <h3>Должность</h3>
-                </div>
-              </article>
-
-              <article className="card">
-                <img className="card-img" src="/img/placeholder.png" alt="" />
-                <div className="card-info">
-                  <h2>Фамилия Имя Отчество</h2>
-                  <h3>Должность</h3>
-                </div>
-              </article>
-
-              <article className="card">
-                <img className="card-img" src="/img/placeholder.png" alt="" />
-                <div className="card-info">
-                  <h2>Фамилия Имя Отчество</h2>
-                  <h3>Должность</h3>
-                </div>
-              </article>
-
-              <article className="card">
-                <img className="card-img" src="/img/placeholder.png" alt="" />
-                <div className="card-info">
-                  <h2>Фамилия Имя Отчество</h2>
-                  <h3>Должность</h3>
-                </div>
-              </article>
+              {loading && <p>Загрузка...</p>}
+              {error && <p style={{ color: 'red' }}>Ошибка: {error}</p>}
+              {!loading && !error && teachers.length === 0 && (
+                <p>Нет преподавателей в этом подразделении</p>
+              )}
+              {!loading &&
+                teachers.map((teacher) => (
+                  <article key={teacher.id} className="card">
+                    <img
+                      className="card-img"
+                      src="/img/placeholder.png"
+                      alt={teacher.fullName}
+                    />
+                    <div className="card-info">
+                      <h2>{teacher.fullName}</h2>
+                      <h3>{teacher.post || 'Должность не указана'}</h3>
+                    </div>
+                  </article>
+                ))}
             </div>
           </div>
         </aside>
