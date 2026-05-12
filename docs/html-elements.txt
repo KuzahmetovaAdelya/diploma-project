@@ -80,3 +80,5 @@ ERROR
 DATA
 login: adminloginnowisit
 password: adminpasswordsecurity
+
+mail password = oozp cuue jqwv ijcp
