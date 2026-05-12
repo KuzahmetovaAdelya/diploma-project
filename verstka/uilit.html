@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="base.css">
+</head>
+<body>
+
+
+<div class="flex">
+<a href="" class="button-text-icon button-accent">
+    <span>Button</span>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M14 25.3334C20.2592 25.3334 25.3334 20.2592 25.3334 14C25.3334 7.74082 20.2592 2.66669 14 2.66669C7.74082 2.66669 2.66669 7.74082 2.66669 14C2.66669 20.2592 7.74082 25.3334 14 25.3334Z" stroke="#0B1B33" stroke-width="2" stroke-linejoin="round"/>
+<path d="M22.1477 22.1478L27.8046 27.8047" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</a>
+
+<a href="" class="button-text button-additional">
+Button
+</a>
+
+<button href="" class="button-icon button-additional">
+    <svg width="64" height="64" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M14 25.3334C20.2592 25.3334 25.3334 20.2592 25.3334 14C25.3334 7.74082 20.2592 2.66669 14 2.66669C7.74082 2.66669 2.66669 7.74082 2.66669 14C2.66669 20.2592 7.74082 25.3334 14 25.3334Z" stroke="#0B1B33" stroke-width="2" stroke-linejoin="round"/>
+<path d="M22.1477 22.1478L27.8046 27.8047" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
+</div>
+
+
+
+
+<article class="card">
+    <img class="card-img" src="./src/img/placeholder.png" alt="">
+    <div class="card-info">
+        <h2>Фамилия Имя Отчество</h2>
+        <h3>Должность</h3>
+    </div>
+</article>
+
+<div class="flex">
+<article class="alarm">
+    <h3>Письмо успешно отправленно!</h3>
+    <svg class="alarm-success" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M29.3334 16V6H16H2.66669V16V26H16" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20.6667 24L24 26.6667L29.3334 20" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2.66669 6L16 16L29.3334 6" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h4>Проверьте свою почту</h4>
+</article>
+
+<article class="alarm">
+    <h3>Письмо не отправленно!</h3>
+    <svg class="alarm-error" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M29.3334 16V6H16H2.66669V16V26H16" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M26.6666 20.6667L21.3333 26" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M21.3333 20.6667L26.6666 26" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2.66669 6L16 16L29.3334 6" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h4>Проверьте написание почты или попробуйте снова позже</h4>
+</article>    
+</div>
+
+<div class="flex">
+<input type="email" name="email" id="email" placeholder="example@mail.ru">
+
+<div id="dropdown" class="dropdown">
+    <a onclick="dropdownToggle()" class="button-text-icon button-additional">
+        <span>Список</span>
+        <svg id="dropdown-arrow" class="arrow-down" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 13L16 21L8 13" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    <div id="dropdown-elems" class="dropdown-elems">
+        <p class="dropdown-option">Список</p>
+        <p class="dropdown-option">Список</p>
+        <p class="dropdown-option">Список</p>
+        <p class="dropdown-option">Список</p>
+    </div>
+</div>
+<script>
+    function dropdownToggle() {
+        let dropdownElems = document.getElementById('dropdown-elems')
+        let arrow = document.getElementById('dropdown-arrow')
+        dropdownElems.classList.toggle('dropdown-elems-open')
+        arrow.classList.toggle('arrow-down')
+        arrow.classList.toggle('arrow-up')
+    }
+</script>    
+</div>
+
+
+<style>
+    .flex {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 50px;
+    }
+
+    body {
+        padding: 20px;
+    }
+
+    .card {
+        margin-bottom: 50px;
+    }
+</style>
+</body>
+</html>
