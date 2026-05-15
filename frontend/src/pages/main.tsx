@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 interface Teacher {
   id: number;
@@ -17,27 +17,25 @@ export default function MainPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Камера
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const units = ['СП - 1', 'СП - 2', 'СП - 3', 'СП - 4', 'СП - 5'];
 
-  // Загрузка преподавателей при изменении подразделения
+  // Загрузка преподавателей при смене подразделения
   useEffect(() => {
     const fetchTeachers = async () => {
       setLoading(true);
       setError(null);
+      let unitForServer = selectedUnit.split(" - ")[1]
       try {
-        // Если серверный маршрут принимает unit из query (правильный REST):
         const response = await fetch(
-          `http://localhost:3001/getTeachersByUnit?unit=${encodeURIComponent(selectedUnit)}`
+          `http://localhost:3001/getTeachersByUnit?unit=${encodeURIComponent(unitForServer)}`
         );
-
-        // Если сервер ожидает тело в GET (неправильно) – замени на POST:
-        // const response = await fetch('http://localhost:3001/getTeachersByUnit', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ unit: selectedUnit }),
-        // });
-
         if (!response.ok) throw new Error('Ошибка загрузки преподавателей');
         const data: Teacher[] = await response.json();
         setTeachers(data);
@@ -48,9 +46,69 @@ export default function MainPage() {
         setLoading(false);
       }
     };
-
     fetchTeachers();
   }, [selectedUnit]);
+
+  // Инициализация камеры
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (err: any) {
+        setCameraError('Не удалось получить доступ к камере: ' + err.message);
+        console.error(err);
+      }
+    };
+    startCamera();
+
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // Фильтрация и сортировка преподавателей по поисковому запросу
+  const filteredTeachers = useMemo(() => {
+    if (!searchQuery.trim()) return teachers;
+
+    const query = searchQuery.toLowerCase().trim();
+
+    // Разделяем на две группы: начинающиеся с запроса и содержащие в любом месте
+    const startsWith: Teacher[] = [];
+    const contains: Teacher[] = [];
+
+    teachers.forEach((teacher) => {
+      const name = teacher.fullName.toLowerCase();
+      if (name.startsWith(query)) {
+        startsWith.push(teacher);
+      } else if (name.includes(query)) {
+        contains.push(teacher);
+      }
+    });
+
+    // Сначала те, что начинаются, потом остальные (порядок внутри групп сохраняется)
+    return [...startsWith, ...contains];
+  }, [teachers, searchQuery]);
+
+  const takePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    alert('Успешно');
+  };
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
   const toggleAside = () => setIsAsideOpen(!isAsideOpen);
@@ -62,6 +120,19 @@ export default function MainPage() {
   return (
     <>
       <div className="camera">
+        {cameraError ? (
+          <div className="camera-error">{cameraError}</div>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="camera-video"
+          />
+        )}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+
         <aside className={`aside-main ${!isAsideOpen ? 'aside-close' : ''}`} id="aside">
           <div className="container-aside">
             <header className="header-main">
@@ -78,10 +149,10 @@ export default function MainPage() {
 
                 <input
                   type="search"
-                  name="search"
-                  id="search"
                   className="search-input"
                   placeholder="Найти"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
 
                 <div id="dropdown" className="dropdown">
@@ -129,12 +200,15 @@ export default function MainPage() {
 
             <div className="cards-block">
               {loading && <p>Загрузка...</p>}
-              {error && <p style={{ color: 'red' }}>Ошибка: {error}</p>}
+              {error && <p className="error">Ошибка: {error}</p>}
               {!loading && !error && teachers.length === 0 && (
                 <p>Нет преподавателей в этом подразделении</p>
               )}
+              {!loading && !error && teachers.length > 0 && filteredTeachers.length === 0 && (
+                <p>Ничего не найдено</p>
+              )}
               {!loading &&
-                teachers.map((teacher) => (
+                filteredTeachers.map((teacher) => (
                   <article key={teacher.id} className="card">
                     <img
                       className="card-img"
@@ -157,7 +231,7 @@ export default function MainPage() {
           </svg>
         </button>
 
-        <button className="button-icon button-additional camera-screen-button">
+        <button onClick={takePhoto} className="button-icon button-additional camera-screen-button">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10 8L12 4H20L22 8H10Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
             <path d="M27.3334 8H4.66669C3.56212 8 2.66669 8.89543 2.66669 10V26C2.66669 27.1046 3.56212 28 4.66669 28H27.3334C28.4379 28 29.3334 27.1046 29.3334 26V10C29.3334 8.89543 28.4379 8 27.3334 8Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>

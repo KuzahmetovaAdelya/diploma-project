@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 interface Photo {
   id: string;
@@ -9,51 +10,65 @@ interface Photo {
 }
 
 export default function ChoosePage() {
-  // Состояние для фотографий (пока статические данные)
-  const [photos, setPhotos] = useState<Photo[]>([
-    { id: 'photo1', src: '/img/placeholder.png', liked: false },
-    { id: 'photo2', src: '/img/placeholder.png', liked: true },
-    { id: 'photo3', src: '/img/placeholder.png', liked: false },
-    { id: 'photo4', src: '/img/placeholder.png', liked: false },
-    { id: 'photo5', src: '/img/placeholder.png', liked: false },
-  ]);
-
-  // Состояние для выбранной (активной) фотографии
-  const [activePhotoId, setActivePhotoId] = useState<string>('photo1');
-
-  // Состояние для email
+  const router = useRouter();
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activePhotoId, setActivePhotoId] = useState<string>('');
   const [email, setEmail] = useState<string>('');
-
-  // Состояние для отображения уведомления об успешной отправке
   const [showAlarm, setShowAlarm] = useState<boolean>(false);
 
-  // Текущий индекс активной фотографии
+  // Загрузка данных из localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('capturedPhotos');
+    if (stored) {
+      try {
+        const names: string[] = JSON.parse(stored);
+        if (Array.isArray(names) && names.length > 0) {
+          const loadedPhotos: Photo[] = names.map((name, index) => ({
+            id: `photo${index}`,
+            src: `http://localhost:3001/photos/${name}`,
+            liked: false,
+          }));
+          setPhotos(loadedPhotos);
+          setActivePhotoId(`photo0`);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Ошибка парсинга фотографий из localStorage');
+      }
+    }
+    // Если данных нет или они невалидны — возвращаемся на главную
+    // router.push('/main');
+  }, [router]);
+
+  // После загрузки вычисляем текущий индекс
   const activeIndex = photos.findIndex((p) => p.id === activePhotoId);
-  const currentNumber = activeIndex + 1;
+  const currentNumber = activeIndex >= 0 ? activeIndex + 1 : 0;
   const totalNumber = photos.length;
 
-  // Функция лайка/анлайка фотографии
-  const toggleLike = (photoId: string): void => {
-    setPhotos((prevPhotos) =>
-      prevPhotos.map((photo) =>
+  const toggleLike = (photoId: string) => {
+    setPhotos((prev) =>
+      prev.map((photo) =>
         photo.id === photoId ? { ...photo, liked: !photo.liked } : photo
       )
     );
   };
 
-  // Функция выбора (активации) фотографии
-  const activatePhoto = (photoId: string): void => {
+  const activatePhoto = (photoId: string) => {
     setActivePhotoId(photoId);
   };
 
-  // Обработчик отправки формы
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Здесь будет логика отправки
     setShowAlarm(true);
-    // Автоматически скрыть уведомление через 5 секунд
     setTimeout(() => setShowAlarm(false), 5000);
   };
+
+  // Пока идёт загрузка или редирект, можно показать пустоту
+  // if (loading || photos.length === 0) {
+  //   return <div className="loading">Загрузка...</div>;
+  // }
 
   return (
     <>
@@ -85,7 +100,6 @@ export default function ChoosePage() {
                   fill="#22539C"
                 />
               </svg>
-
               <h1>Выберите фото</h1>
             </header>
 
@@ -101,25 +115,18 @@ export default function ChoosePage() {
 
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // чтобы не активировать карточку при клике на лайк
+                      e.stopPropagation();
                       toggleLike(photo.id);
                     }}
                     className="photo-card-action"
                   >
                     <svg
                       className={`photo-card-action-icon ${photo.liked ? 'photo-card-action-icon-liked' : ''}`}
-                      width="32"
-                      height="32"
-                      viewBox="0 0 32 32"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+                      width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"
                     >
                       <path
                         d="M10 5.33334C5.94993 5.33334 2.66669 8.61661 2.66669 12.6667C2.66669 20 11.3334 26.6667 16 28.2175C20.6667 26.6667 29.3334 20 29.3334 12.6667C29.3334 8.61661 26.0501 5.33334 22 5.33334C19.5198 5.33334 17.3272 6.56461 16 8.44921C14.6729 6.56461 12.4802 5.33334 10 5.33334Z"
-                        stroke="#0B1B33"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                        stroke="#0B1B33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                       />
                     </svg>
                   </button>
@@ -130,9 +137,7 @@ export default function ChoosePage() {
         </aside>
 
         <div className="container-choose">
-          <h2>
-            {currentNumber} / {totalNumber}
-          </h2>
+          <h2>{currentNumber} / {totalNumber}</h2>
 
           <img
             src={photos[activeIndex]?.src || '/img/placeholder.png'}
@@ -166,35 +171,10 @@ export default function ChoosePage() {
           {showAlarm && (
             <article className="alarm">
               <h3>Письмо успешно отправленно!</h3>
-              <svg
-                className="alarm-success"
-                width="32"
-                height="32"
-                viewBox="0 0 32 32"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M29.3334 16V6H16H2.66669V16V26H16"
-                  stroke="#0B1B33"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M20.6667 24L24 26.6667L29.3334 20"
-                  stroke="#0B1B33"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2.66669 6L16 16L29.3334 6"
-                  stroke="#0B1B33"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+              <svg className="alarm-success" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M29.3334 16V6H16H2.66669V16V26H16" stroke="#0B1B33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M20.6667 24L24 26.6667L29.3334 20" stroke="#0B1B33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2.66669 6L16 16L29.3334 6" stroke="#0B1B33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <h4>Проверьте свою почту</h4>
             </article>

@@ -4,7 +4,7 @@ const { Pool } = pkg;
 
 const pool = new Pool({
   host: 'localhost',          
-  port: 5432,
+  port: 5435,
   database: 'Reflection',
   user: 'postgres',      
   password: process.env.DB_PASSWORD || 'admin',  

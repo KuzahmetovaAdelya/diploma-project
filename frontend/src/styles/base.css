@@ -78,6 +78,10 @@ a {
     cursor: pointer;
 }
 
+.error {
+    color: var(--error-color);
+}
+
 /* INPUTS */
 
 input {

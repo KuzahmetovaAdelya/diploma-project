@@ -167,3 +167,11 @@
     bottom: 64px;
     left: calc((100vw - 128px) / 2);
 }
+
+.camera-error {
+    position: absolute;
+    z-index: 101;
+    top: 30px;
+    left: 104px;
+    color: var(--error-color);
+}
