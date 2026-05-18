@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 interface Teacher {
   id: number;
@@ -11,11 +9,9 @@ interface Teacher {
   cabinet?: string;
   modelId?: number;
   photo?: string;
-  modelUrl?: string | null;   // ссылка на GLB-модель
 }
 
 export default function MainPage() {
-  // ... (состояния dropdown, aside, search, teachers – без изменений)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAsideOpen, setIsAsideOpen] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState('СП - 4');
@@ -24,30 +20,18 @@ export default function MainPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Камера и 3D
+  // Камера
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const threeCanvasRef = useRef<HTMLCanvasElement>(null);   // канвас для 3D-модели
   const [cameraError, setCameraError] = useState<string | null>(null);
-
-  // Выбранный преподаватель и его 3D-модель
-  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
-  const [modelLoaded, setModelLoaded] = useState(false);
-
-  // Three.js рефы
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const camera3dRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   const units = ['СП - 1', 'СП - 2', 'СП - 3', 'СП - 4', 'СП - 5'];
 
-  // Загрузка преподавателей (как было, но добавим JOIN с моделями на бэкенде)
   useEffect(() => {
     const fetchTeachers = async () => {
       setLoading(true);
       setError(null);
-      const unitForServer = selectedUnit.split(' - ')[1];
+      let unitForServer = selectedUnit.split(" - ")[1]
       try {
         const response = await fetch(
           `http://localhost:3001/getTeachersByUnit?unit=${encodeURIComponent(unitForServer)}`
@@ -65,199 +49,73 @@ export default function MainPage() {
     fetchTeachers();
   }, [selectedUnit]);
 
-  // Инициализация Three.js сцены
   useEffect(() => {
-    if (!threeCanvasRef.current) return;
-
-    // Рендерер с прозрачным фоном
-    const renderer = new THREE.WebGLRenderer({
-      canvas: threeCanvasRef.current,
-      alpha: true,
-      antialias: true,
-    });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    rendererRef.current = renderer;
-
-    // Сцена и освещение
-    const scene = new THREE.Scene();
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(0, 5, 5);
-    scene.add(dirLight);
-    sceneRef.current = scene;
-
-    // Камера (перспективная, статичная)
-    const camera = new THREE.PerspectiveCamera(
-      45,                                        // FOV
-      window.innerWidth / window.innerHeight,    // aspect (будет обновляться)
-      0.1,
-      1000
-    );
-    camera.position.set(0, 0.5, 2.5);           // позиция камеры
-    camera.lookAt(0, 0, 0);
-    camera3dRef.current = camera;
-
-    // Цикл рендеринга
-    const animate = () => {
-      animationFrameRef.current = requestAnimationFrame(animate);
-      if (renderer && scene && camera) {
-        renderer.render(scene, camera);
-      }
-    };
-    animate();
-
-    // Очистка при размонтировании
-    return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      renderer.dispose();
-    };
-  }, []);
-
-  // Обновление размера рендерера под размер видео
-  useEffect(() => {
-    const resizeHandler = () => {
-      if (videoRef.current && threeCanvasRef.current && rendererRef.current) {
-        const { videoWidth, videoHeight } = videoRef.current;
-        if (videoWidth && videoHeight) {
-          rendererRef.current.setSize(videoWidth, videoHeight, false);
-          if (camera3dRef.current) {
-            camera3dRef.current.aspect = videoWidth / videoHeight;
-            camera3dRef.current.updateProjectionMatrix();
-          }
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
         }
+      } catch (err: any) {
+        setCameraError('Не удалось получить доступ к камере: ' + err.message);
+        console.error(err);
       }
     };
+    startCamera();
 
-    // Наблюдаем за загрузкой метаданных видео
-    const videoEl = videoRef.current;
-    if (videoEl) {
-      videoEl.addEventListener('loadedmetadata', resizeHandler);
-      window.addEventListener('resize', resizeHandler);
-    }
     return () => {
-      if (videoEl) videoEl.removeEventListener('loadedmetadata', resizeHandler);
-      window.removeEventListener('resize', resizeHandler);
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
-  // Загрузка модели выбранного преподавателя
-  useEffect(() => {
-    if (!selectedTeacher || !selectedTeacher.modelUrl || !sceneRef.current) {
-      // Удаляем предыдущую модель, если есть
-      if (sceneRef.current) {
-        const oldModel = sceneRef.current.getObjectByName('teacherModel');
-        if (oldModel) sceneRef.current.remove(oldModel);
-      }
-      setModelLoaded(false);
-      return;
-    }
-
-    const loader = new GLTFLoader();
-    loader.load(
-      selectedTeacher.modelUrl,
-      (gltf) => {
-        const model = gltf.scene;
-        model.name = 'teacherModel';
-
-        // Масштаб и позиция (подберите под свои модели)
-        model.scale.set(0.8, 0.8, 0.8);
-        model.position.set(0, -0.2, 0);   // чуть ниже центра
-        model.rotation.set(0, 0, 0);      // без вращения
-
-        // Удаляем старую модель, если была
-        const oldModel = sceneRef.current?.getObjectByName('teacherModel');
-        if (oldModel) sceneRef.current?.remove(oldModel);
-
-        sceneRef.current?.add(model);
-        setModelLoaded(true);
-      },
-      undefined,
-      (error) => console.error('Ошибка загрузки модели:', error)
-    );
-  }, [selectedTeacher, sceneRef]);
-
-  // Фильтрация и сортировка преподавателей (без изменений)
+  // Фильтрация и сортировка преподавателей по поисковому запросу
   const filteredTeachers = useMemo(() => {
     if (!searchQuery.trim()) return teachers;
+
     const query = searchQuery.toLowerCase().trim();
+
+    // Разделяем на две группы: начинающиеся с запроса и содержащие в любом месте
     const startsWith: Teacher[] = [];
     const contains: Teacher[] = [];
+
     teachers.forEach((teacher) => {
       const name = teacher.fullName.toLowerCase();
-      if (name.startsWith(query)) startsWith.push(teacher);
-      else if (name.includes(query)) contains.push(teacher);
+      if (name.startsWith(query)) {
+        startsWith.push(teacher);
+      } else if (name.includes(query)) {
+        contains.push(teacher);
+      }
     });
+
+    // Сначала те, что начинаются, потом остальные (порядок внутри групп сохраняется)
     return [...startsWith, ...contains];
   }, [teachers, searchQuery]);
 
-  // Съёмка фото с моделью и отправка на сервер
-  const takePhoto = async () => {
+  const takePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const threeCanvas = threeCanvasRef.current;
-    if (!video || !canvas || !threeCanvas) return;
+    if (!video || !canvas) return;
 
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
-    if (!videoWidth || !videoHeight) return;
-
-    // Настраиваем основной canvas
-    canvas.width = videoWidth;
-    canvas.height = videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    // Рисуем видео (зеркально для фронтальной камеры, если нужно)
-    ctx.save();
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    ctx.restore();
-
-    // Накладываем содержимое 3D-канваса (уже с прозрачностью)
-    ctx.drawImage(threeCanvas, 0, 0);
-
-    // Конвертируем в Blob и отправляем
-    canvas.toBlob(async (blob) => {
-      if (!blob || !selectedTeacher) return;
-
-      const formData = new FormData();
-      formData.append('photo', blob, `photo_${Date.now()}.png`);
-      formData.append('teacherId', String(selectedTeacher.id));
-
-      try {
-        const res = await fetch('http://localhost:3001/uploadPhoto', {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) throw new Error('Ошибка загрузки фото');
-
-        const data = await res.json();      // { id, photoName }
-        // Сохраняем в localStorage серию
-        const stored = JSON.parse(localStorage.getItem('capturedPhotos') || '[]');
-        stored.push({ id: data.id, photoName: data.photoName });
-        localStorage.setItem('capturedPhotos', JSON.stringify(stored));
-
-        // Если набралось 5 фото – переход на /choose
-        if (stored.length >= 5) {
-          alert('Серия снимков завершена!');
-          // router.push('/choose');  // нужно импортировать useRouter
-        } else {
-          alert(`Снимок ${stored.length} из 5 сделан`);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Не удалось сохранить фото');
-      }
-    }, 'image/png');
+    alert('Успешно');
   };
 
-  // Обработчик клика по карточке преподавателя
-  const handleSelectTeacher = (teacher: Teacher) => {
-    setSelectedTeacher(teacher);
-  };
+  function test() {
+    const current = JSON.parse(localStorage.getItem('capturedPhotos') || '[]');
+    current.push({ id: 2, photoName: "46b0c516-3ad4-49b5-8d6a-6d1036e182cb.png" });
+    current.push({ id: 3, photoName: "f8899b99-487c-4806-87dc-9d65d85ced3a.png" });
+    localStorage.setItem('capturedPhotos', JSON.stringify(current));
+  }
 
-  // ... (остальные обработчики dropdown, aside)
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
   const toggleAside = () => setIsAsideOpen(!isAsideOpen);
   const selectUnit = (unit: string) => {
@@ -279,22 +137,9 @@ export default function MainPage() {
             className="camera-video"
           />
         )}
-        {/* Канвас для 3D-модели поверх видео */}
-        <canvas
-          ref={threeCanvasRef}
-          className="three-canvas"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',   // чтобы не перехватывал клики
-          }}
-        />
-        {/* Скрытый канвас для снимка */}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
-        <aside className={`aside-main ${!isAsideOpen ? 'aside-close' : ''}`}>
+
+        <aside className={`aside-main ${!isAsideOpen ? 'aside-close' : ''}`} id="aside">
           <div className="container-aside">
             <header className="header-main">
               <div className="header-block">
@@ -370,11 +215,7 @@ export default function MainPage() {
               )}
               {!loading &&
                 filteredTeachers.map((teacher) => (
-                  <article
-                    key={teacher.id}
-                    className={`card ${selectedTeacher?.id === teacher.id ? 'card-active' : ''}`}
-                    onClick={() => handleSelectTeacher(teacher)}
-                  >
+                  <article key={teacher.id} className="card">
                     <img
                       className="card-img"
                       src={`http://localhost:3001/photos/${teacher.photo}`}
@@ -396,7 +237,7 @@ export default function MainPage() {
           </svg>
         </button>
 
-        <button onClick={takePhoto} className="button-icon button-additional camera-screen-button">
+        <button onClick={test} className="button-icon button-additional camera-screen-button">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10 8L12 4H20L22 8H10Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
             <path d="M27.3334 8H4.66669C3.56212 8 2.66669 8.89543 2.66669 10V26C2.66669 27.1046 3.56212 28 4.66669 28H27.3334C28.4379 28 29.3334 27.1046 29.3334 26V10C29.3334 8.89543 28.4379 8 27.3334 8Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>

@@ -219,10 +219,15 @@ app.get("/getTeachersByUnit", async (req, res) => {
   try {
     const { unit } = req.query;
     if (!unit) return res.status(400).send("unit is required");
+
     const result = await pool.query(
-      'SELECT * FROM "Teachers" WHERE unit = $1',
+      `SELECT t.*, m."model" AS "modelUrl"
+       FROM "Teachers" t
+       LEFT JOIN "Models" m ON t."modelId" = m."id"
+       WHERE t.unit = $1`,
       [unit]
     );
+
     res.status(200).json(result.rows);
   } catch (err) {
     console.error("Ошибка при получении преподавателей по unit:", err.message);
