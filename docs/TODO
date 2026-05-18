@@ -1,12 +1,6 @@
-- CAMERA
 - AR to camera
 - integration with Liza's db
 # MAIN
 - photographing seria
 - save photo
-# CHOOSE
-- save likes in localstorage
-- show images in sidebar
-- show choosen image in right part
-- send liked photos
  

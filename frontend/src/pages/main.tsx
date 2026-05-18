@@ -8,6 +8,7 @@ interface Teacher {
   post?: string;
   cabinet?: string;
   modelId?: number;
+  photo?: string;
 }
 
 export default function MainPage() {
@@ -26,7 +27,6 @@ export default function MainPage() {
 
   const units = ['СП - 1', 'СП - 2', 'СП - 3', 'СП - 4', 'СП - 5'];
 
-  // Загрузка преподавателей при смене подразделения
   useEffect(() => {
     const fetchTeachers = async () => {
       setLoading(true);
@@ -49,12 +49,11 @@ export default function MainPage() {
     fetchTeachers();
   }, [selectedUnit]);
 
-  // Инициализация камеры
   useEffect(() => {
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
+          video: { facingMode: 'user' },
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -109,6 +108,13 @@ export default function MainPage() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     alert('Успешно');
   };
+
+  function test() {
+    const current = JSON.parse(localStorage.getItem('capturedPhotos') || '[]');
+    current.push({ id: 2, photoName: "46b0c516-3ad4-49b5-8d6a-6d1036e182cb.png" });
+    current.push({ id: 3, photoName: "f8899b99-487c-4806-87dc-9d65d85ced3a.png" });
+    localStorage.setItem('capturedPhotos', JSON.stringify(current));
+  }
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
   const toggleAside = () => setIsAsideOpen(!isAsideOpen);
@@ -212,7 +218,7 @@ export default function MainPage() {
                   <article key={teacher.id} className="card">
                     <img
                       className="card-img"
-                      src="/img/placeholder.png"
+                      src={`http://localhost:3001/photos/${teacher.photo}`}
                       alt={teacher.fullName}
                     />
                     <div className="card-info">
@@ -231,7 +237,7 @@ export default function MainPage() {
           </svg>
         </button>
 
-        <button onClick={takePhoto} className="button-icon button-additional camera-screen-button">
+        <button onClick={test} className="button-icon button-additional camera-screen-button">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10 8L12 4H20L22 8H10Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
             <path d="M27.3334 8H4.66669C3.56212 8 2.66669 8.89543 2.66669 10V26C2.66669 27.1046 3.56212 28 4.66669 28H27.3334C28.4379 28 29.3334 27.1046 29.3334 26V10C29.3334 8.89543 28.4379 8 27.3334 8Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
