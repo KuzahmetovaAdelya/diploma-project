@@ -104,6 +104,10 @@ export default function ChoosePage() {
     return <div className="loading">Загрузка...</div>;
   }
 
+  function clearHistory() {
+    localStorage.removeItem('capturedPhotos')
+  }
+
   return (
     <>
       <Head>
@@ -186,10 +190,10 @@ export default function ChoosePage() {
           {error && <p className="error-message">{error}</p>}
 
           <div className="choose-actions">
-            <Link className="button-text button-additional" href="/main">
+            <Link className="button-text button-additional" onClick={clearHistory} href="/main">
               Повторить
             </Link>
-            <Link className="button-text button-additional" href="/finall">
+            <Link className="button-text button-additional" onClick={clearHistory} href="/finall">
               Завершить
             </Link>
           </div>

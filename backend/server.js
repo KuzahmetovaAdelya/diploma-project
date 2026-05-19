@@ -295,17 +295,20 @@ app.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
     return res.status(400).send('Не указан teacherId');
   }
 
-  const photoName = req.file.filename;
+  const photoName = req.file.filename; // содержит UUID + расширение
 
   try {
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO "Photos" ("photoName", "teacherId", "createdAt") 
-       VALUES ($1, $2, NOW())`,
+       VALUES ($1, $2, NOW()) RETURNING "id"`,
       [photoName, teacherId]
     );
 
+    const newId = result.rows[0].id; // получаем id
+
     res.status(201).json({
       message: 'Фото сохранено',
+      id: newId,              // <-- теперь клиент получит id
       photoName,
       filePath: req.file.path
     });
