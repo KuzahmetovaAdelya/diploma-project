@@ -70,7 +70,7 @@
     right: 0;
     bottom: 0;
     border: 10px solid var(--additional-color);
-    pointer-events: none;  /* чтобы обводка не мешала кликам по кнопке */
+    pointer-events: none;
     transition: border-color .3s ease-in-out;
 }
 
@@ -125,7 +125,6 @@
 
 .choose-img {
     width: 700px;
-    /* height: 526px; */
     margin-top: 50px;
     margin-left: 135px;
 }

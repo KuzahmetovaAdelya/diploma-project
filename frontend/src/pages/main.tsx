@@ -13,10 +13,12 @@ interface Teacher {
   modelId?: number;
   photo?: string;
   modelUrl?: string | null;
+  modelScaleX: number;
+  modelScaleY: number;
+  modelScaleZ: number;
 }
 
 export default function MainPage() {
-  // ... все предыдущие состояния (без изменений)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAsideOpen, setIsAsideOpen] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState('СП - 4');
@@ -40,15 +42,11 @@ export default function MainPage() {
   const camera3dRef = useRef<THREE.PerspectiveCamera | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  // --- Новые состояния для автоматической серии ---
   const [isShooting, setIsShooting] = useState(false);
   const [shootProgress, setShootProgress] = useState(0);
 
   const units = ['СП - 1', 'СП - 2', 'СП - 3', 'СП - 4', 'СП - 5'];
 
-  // ... все useEffect (загрузка преподавателей, камера, Three.js, загрузка модели) остаются без изменений ...
-
-  // Загрузка преподавателей
   useEffect(() => {
     const fetchTeachers = async () => {
       setLoading(true);
@@ -71,7 +69,6 @@ export default function MainPage() {
     fetchTeachers();
   }, [selectedUnit]);
 
-  // Камера
   useEffect(() => {
     const startCamera = async () => {
       try {
@@ -96,7 +93,6 @@ export default function MainPage() {
     };
   }, []);
 
-  // Three.js инициализация (код без изменений)
   useEffect(() => {
     if (!threeCanvasRef.current) return;
     const renderer = new THREE.WebGLRenderer({
@@ -145,7 +141,6 @@ export default function MainPage() {
     };
   }, []);
 
-  // Загрузка модели
   useEffect(() => {
     if (!selectedTeacher || !selectedTeacher.modelUrl || !sceneRef.current) {
       if (sceneRef.current) {
@@ -162,7 +157,7 @@ export default function MainPage() {
       (gltf) => {
         const model = gltf.scene;
         model.name = 'teacherModel';
-        model.scale.set(1.25, 1.25, 1.25);
+        model.scale.set(selectedTeacher.modelScaleX, selectedTeacher.modelScaleY, selectedTeacher.modelScaleZ);
         model.position.set(0, -1.20, -0.30);
         model.rotation.set(0, 80, 0);
 
@@ -177,7 +172,6 @@ export default function MainPage() {
     );
   }, [selectedTeacher, sceneRef]);
 
-  // Фильтрация преподавателей
   const filteredTeachers = useMemo(() => {
     if (!searchQuery.trim()) return teachers;
     const query = searchQuery.toLowerCase().trim();
@@ -191,84 +185,88 @@ export default function MainPage() {
     return [...startsWith, ...contains];
   }, [teachers, searchQuery]);
 
-  // --- Выделенная функция сохранения одного снимка ---
-const captureAndSave = async (): Promise<{ id: number; photoName: string } | null> => {
-  const video = videoRef.current;
-  const canvas = canvasRef.current;
-  const threeCanvas = threeCanvasRef.current;
-  if (!video || !canvas || !threeCanvas) return null;
+  const captureAndSave = async (): Promise<{ id: number; photoName: string } | null> => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const threeCanvas = threeCanvasRef.current;
+    const parent = threeCanvas?.parentElement;
+    if (!video || !canvas || !threeCanvas || !parent) return null;
 
-  const videoWidth = video.videoWidth;
-  const videoHeight = video.videoHeight;
-  if (!videoWidth || !videoHeight) return null;
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    if (!videoWidth || !videoHeight) return null;
 
-  // Принудительный рендер, чтобы модель была на 3D-канвасе
-  if (modelLoaded && rendererRef.current && sceneRef.current && camera3dRef.current) {
-    rendererRef.current.render(sceneRef.current, camera3dRef.current);
-  }
+    const viewportW = parent.clientWidth;
+    const viewportH = parent.clientHeight;
+    if (!viewportW || !viewportH) return null;
 
-  const threeWidth = threeCanvas.width;
-  const threeHeight = threeCanvas.height;
-  if (!threeWidth || !threeHeight) return null;
+    const dpr = window.devicePixelRatio || 1;
+    const outputW = Math.round(viewportW * dpr);
+    const outputH = Math.round(viewportH * dpr);
 
-  const videoAspect = videoWidth / videoHeight;
-  const threeAspect = threeWidth / threeHeight;
+    if (modelLoaded && rendererRef.current && sceneRef.current && camera3dRef.current) {
+      rendererRef.current.render(sceneRef.current, camera3dRef.current);
+    }
 
-  // Вычисляем область, которая заполнит видео без искажений (cover)
-  let sx = 0, sy = 0, sWidth = threeWidth, sHeight = threeHeight;
-  if (videoAspect > threeAspect) {
-    // Видео шире — обрезаем 3D-канвас сверху/снизу
-    sHeight = threeWidth / videoAspect;
-    sy = (threeHeight - sHeight) / 2;
-  } else {
-    // Видео уже — обрезаем слева/справа
-    sWidth = threeHeight * videoAspect;
-    sx = (threeWidth - sWidth) / 2;
-  }
+    const threeWidth = threeCanvas.width;
+    const threeHeight = threeCanvas.height;
+    if (!threeWidth || !threeHeight) return null;
 
-  // Скрытый canvas под видео
-  canvas.width = videoWidth;
-  canvas.height = videoHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
+    const videoAspect = videoWidth / videoHeight;
+    const viewportAspect = viewportW / viewportH;
 
-  // Рисуем видео (зеркалим для фронтальной камеры)
-  ctx.save();
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  ctx.restore();
+    let vx = 0, vy = 0, vw = videoWidth, vh = videoHeight;
+    if (videoAspect > viewportAspect) {
+      vw = videoHeight * viewportAspect;
+      vx = (videoWidth - vw) / 2;
+    } else {
+      vh = videoWidth / viewportAspect;
+      vy = (videoHeight - vh) / 2;
+    }
 
-  // Накладываем 3D-канвас с обрезкой и растяжением (cover)
-  ctx.drawImage(threeCanvas, sx, sy, sWidth, sHeight, 0, 0, videoWidth, videoHeight);
+    canvas.width = outputW;
+    canvas.height = outputH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(async (blob) => {
-      if (!blob || !selectedTeacher) {
-        resolve(null);
-        return;
-      }
-      const formData = new FormData();
-      formData.append('photo', blob, `photo_${Date.now()}.png`);
-      formData.append('teacherId', String(selectedTeacher.id));
+    ctx.save();
+    ctx.translate(outputW, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, vx, vy, vw, vh, 0, 0, outputW, outputH);
+    ctx.restore();
 
-      try {
-        const res = await fetch('http://localhost:3001/uploadPhoto', {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) throw new Error('Ошибка загрузки фото');
-        const data = await res.json();
-        resolve({ id: data.id, photoName: data.photoName });
-      } catch (err) {
-        console.error(err);
-        reject(err);
-      }
-    }, 'image/png');
-  });
-};
+    ctx.save();
+    ctx.translate(outputW, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(threeCanvas, 0, 0, threeWidth, threeHeight, 0, 0, outputW, outputH);
+    ctx.restore();
 
-  // --- Запуск автоматической серии ---
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob || !selectedTeacher) {
+          resolve(null);
+          return;
+        }
+        const formData = new FormData();
+        formData.append('photo', blob, `photo_${Date.now()}.png`);
+        formData.append('teacherId', String(selectedTeacher.id));
+
+        try {
+          const res = await fetch('http://localhost:3001/uploadPhoto', {
+            method: 'POST',
+            body: formData,
+          });
+          if (!res.ok) throw new Error('Ошибка загрузки фото');
+          const data = await res.json();
+          resolve({ id: data.id, photoName: data.photoName });
+        } catch (err) {
+          console.error(err);
+          reject(err);
+        }
+      }, 'image/png');
+    });
+  };
+
   const startSeries = async () => {
     if (isShooting || !selectedTeacher) return;
     setIsShooting(true);
@@ -276,12 +274,11 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
     const capturedPhotos: { id: number; photoName: string }[] = [];
 
     for (let i = 0; i < 5; i++) {
-      // Обратный отсчёт 3-2-1
       for (let sec = 5; sec > 0; sec--) {
         setCountdown(sec);
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-      setCountdown(null); // убираем таймер
+      setCountdown(null);
 
       try {
         const result = await captureAndSave();
@@ -308,19 +305,21 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
     setIsShooting(false);
   };
 
-  // Обработчики UI
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+
   const toggleAside = () => setIsAsideOpen(!isAsideOpen);
+
   const selectUnit = (unit: string) => {
     setSelectedUnit(unit);
     setIsDropdownOpen(false);
   };
+
   const handleSelectTeacher = (teacher: Teacher) => {
     toggleAside()
     setSelectedTeacher(teacher);
   }
-  // --- Рендер ---
+
   return (
     <>
       <div className="camera">
@@ -336,14 +335,13 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
+            width: '100vw',
+            height: '100vh',
             pointerEvents: 'none',
           }}
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-        {/* Таймер обратного отсчёта */}
         {countdown !== null && (
           <div
             style={{
@@ -365,10 +363,8 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
 
         <aside className={`aside-main ${!isAsideOpen ? 'aside-close' : ''}`}>
           <div className="container-aside">
-            {/* ... header, search, dropdown ... */}
             <header className="header-main">
               <div className="header-block">
-                {/* SVG logo */}
                 <svg 
                   className="ref-logo"
                   viewBox="0 0 129 129"
@@ -389,7 +385,7 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
                   <a onClick={toggleDropdown} className="button-text-icon button-additional">
                     <span>{selectedUnit}</span>
                     <svg className={isDropdownOpen ? 'arrow-up' : 'arrow-down'} fill='none' width="32" height="32" viewBox="0 0 32 32">
-                      <path d="M24 13L16 21L8 13" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M24 13L16 21L8 13" stroke="#0B1B33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </a>
                   {isDropdownOpen && (
@@ -412,7 +408,7 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M13 9L21 17L13 25" stroke="#0B1B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 9L21 17L13 25" stroke="#0B1B33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </header>
 
@@ -458,9 +454,9 @@ const captureAndSave = async (): Promise<{ id: number; photoName: string } | nul
             <span style={{ fontSize: 24, color: 'white' }}>{shootProgress}/5</span>
           ) : (
             <svg width="32" height="32" fill="none" viewBox="0 0 32 32">
-              <path d="M10 8L12 4H20L22 8H10Z" stroke="#0B1B33" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M27.3334 8H4.66669C3.56212 8 2.66669 8.89543 2.66669 10V26C2.66669 27.1046 3.56212 28 4.66669 28H27.3334C28.4379 28 29.3334 27.1046 29.3334 26V10C29.3334 8.89543 28.4379 8 27.3334 8Z" stroke="#0B1B33" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M16 23.3333C18.9456 23.3333 21.3334 20.9455 21.3334 18C21.3334 15.0545 18.9456 12.6667 16 12.6667C13.0545 12.6667 10.6667 15.0545 10.6667 18C10.6667 20.9455 13.0545 23.3333 16 23.3333Z" stroke="#0B1B33" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M10 8L12 4H20L22 8H10Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M27.3334 8H4.66669C3.56212 8 2.66669 8.89543 2.66669 10V26C2.66669 27.1046 3.56212 28 4.66669 28H27.3334C28.4379 28 29.3334 27.1046 29.3334 26V10C29.3334 8.89543 28.4379 8 27.3334 8Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M16 23.3333C18.9456 23.3333 21.3334 20.9455 21.3334 18C21.3334 15.0545 18.9456 12.6667 16 12.6667C13.0545 12.6667 10.6667 15.0545 10.6667 18C10.6667 20.9455 13.0545 23.3333 16 23.3333Z" stroke="#0B1B33" strokeWidth="2" strokeLinejoin="round"/>
             </svg>
           )}
         </button>

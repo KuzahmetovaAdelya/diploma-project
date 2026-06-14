@@ -221,7 +221,7 @@ app.get("/getTeachersByUnit", async (req, res) => {
     if (!unit) return res.status(400).send("unit is required");
 
     const result = await pool.query(
-      `SELECT t.*, m."model" AS "modelUrl"
+      `SELECT t.*, m."model" AS "modelUrl", m."scaleX" AS "modelScaleX", m."scaleY" AS "modelScaleY", m."scaleZ" AS "modelScaleZ"
        FROM "Teachers" t
        LEFT JOIN "Models" m ON t."modelId" = m."id"
        WHERE t.unit = $1`,
@@ -295,7 +295,7 @@ app.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
     return res.status(400).send('Не указан teacherId');
   }
 
-  const photoName = req.file.filename; // содержит UUID + расширение
+  const photoName = req.file.filename;
 
   try {
     const result = await pool.query(
@@ -304,11 +304,11 @@ app.post('/uploadPhoto', upload.single('photo'), async (req, res) => {
       [photoName, teacherId]
     );
 
-    const newId = result.rows[0].id; // получаем id
+    const newId = result.rows[0].id;
 
     res.status(201).json({
       message: 'Фото сохранено',
-      id: newId,              // <-- теперь клиент получит id
+      id: newId,
       photoName,
       filePath: req.file.path
     });
@@ -332,7 +332,6 @@ app.get('/photos/:photoName', (req, res) => {
 app.post('/sendPhotos', async (req, res) => {
   try {
     const { email, photos } = req.body;
-    // photos = array of ids
 
     if (!email || !photos || !Array.isArray(photos) || photos.length === 0) {
       return res.status(400).json({ error: 'Не указаны email и/или фотографии (массив id)' });
