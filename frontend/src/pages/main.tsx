@@ -73,7 +73,7 @@ export default function MainPage() {
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
+          video: { width: 1920, height: 1080 },
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -141,10 +141,29 @@ export default function MainPage() {
     };
   }, []);
 
+  const createShadowTexture = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Создаем радиальный градиент: в центре черный, к краям полностью прозрачный
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)'); // Непрозрачность тени в центре
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  };
+
   useEffect(() => {
     if (!selectedTeacher || !selectedTeacher.modelUrl || !sceneRef.current) {
       if (sceneRef.current) {
-        const oldModel = sceneRef.current.getObjectByName('teacherModel');
+        const oldModel = sceneRef.current.getObjectByName('teacherModelContainer');
         if (oldModel) sceneRef.current.remove(oldModel);
       }
       setModelLoaded(false);
@@ -155,16 +174,41 @@ export default function MainPage() {
     loader.load(
       selectedTeacher.modelUrl,
       (gltf) => {
+        const container = new THREE.Group();
+        container.name = 'teacherModelContainer';
+
         const model = gltf.scene;
         model.name = 'teacherModel';
-        model.scale.set(selectedTeacher.modelScaleX, selectedTeacher.modelScaleY, selectedTeacher.modelScaleZ);
-        model.position.set(0, -1.20, -0.30);
-        model.rotation.set(0, 80, 0);
 
-        const oldModel = sceneRef.current?.getObjectByName('teacherModel');
-        if (oldModel) sceneRef.current?.remove(oldModel);
+        model.scale.set(1, 1, 1);
+        model.position.set(0, 0, 0); 
+        container.add(model);
 
-        sceneRef.current?.add(model);
+        const shadowTexture = createShadowTexture();
+        if (shadowTexture) {
+          const shadowGeo = new THREE.PlaneGeometry(1.2, 1.2);
+          const shadowMat = new THREE.MeshBasicMaterial({
+            map: shadowTexture,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.MultiplyBlending,
+          });
+
+          const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+          shadowMesh.rotation.x = -Math.PI / 2;
+          shadowMesh.position.y = -0.01; 
+
+          container.add(shadowMesh);
+        }
+
+        container.scale.set(selectedTeacher.modelScaleX, selectedTeacher.modelScaleY, selectedTeacher.modelScaleZ);
+        container.position.set(-0.65, -1.6, -1.65);
+        container.rotation.set(0, -1.4, 0);
+
+        const oldContainer = sceneRef.current?.getObjectByName('teacherModelContainer');
+        if (oldContainer) sceneRef.current?.remove(oldContainer);
+
+        sceneRef.current?.add(container);
         setModelLoaded(true);
       },
       undefined,
